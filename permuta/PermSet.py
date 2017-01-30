@@ -1,14 +1,6 @@
 import abc
 import numbers
 
-from permuta.descriptors import Descriptor
-from permuta.descriptors import Basis
-from permuta.descriptors import Predicate
-from permuta._perm_set import PermSetBase
-from permuta._perm_set.finite import PermSetStatic
-from permuta._perm_set.unbounded.all import PermSetAll
-from permuta._perm_set.unbounded.described import PermSetDescribed
-
 
 class PermSetMetaclass(type):
     def __instancecheck__(self, instance):
@@ -32,6 +24,8 @@ class PermSet(object, metaclass=PermSetMetaclass):
     @classmethod
     def _dispatch_described(cls, descriptor):
         for described_superclass in PermSetDescribed.__subclasses__():
+            print(described_superclass)
+            print(described_superclass.descriptor_class)
             if isinstance(descriptor, described_superclass.descriptor_class):
                 described_class = cls._find_described_class(descriptor, PermSetDescribed)
                 if described_class is None:
@@ -59,3 +53,13 @@ class PermSet(object, metaclass=PermSetMetaclass):
     @classmethod
     def filtered(cls, predicate):
         return cls(Predicate(predicate))
+
+
+from permuta.descriptors import Descriptor
+from permuta.descriptors import Basis
+from permuta.descriptors import Predicate
+from permuta.descriptors import Tiling
+from permuta._perm_set import PermSetBase
+from permuta._perm_set.finite import PermSetStatic
+from permuta._perm_set.unbounded.all import PermSetAll
+from permuta._perm_set.unbounded.described import PermSetDescribed

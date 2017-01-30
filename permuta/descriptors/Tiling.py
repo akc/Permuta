@@ -1,27 +1,52 @@
+import warnings
+
 from builtins import dict
 from collections import OrderedDict
-from future.utils import iteritems
-from .Tile import Tile
-from .Perm import Perm
-from .PermSet import PermSet
-from permuta.descriptors import Descriptor
-from permuta._perm_set.finite import PermSetFiniteSpecificLength
-from permuta._perm_set.unbounded.described import PermSetDescribed
+
+from .Descriptor import Descriptor
+from .Basis import Basis
+
+from permuta import Perm
+from permuta._perm_set.finite import PermSetStatic
+from permuta._perm_set.unbounded.all import PermSetAll
+from permuta._perm_set.unbounded.described.avoiding import AvoidingGeneric
 
 
-class Tiling(dict):
+class Tiling(dict, Descriptor):
     """Tiling class.
-    
-    Coordinates are tuples of (i, j) which work in the traditional matrix way.
+
+    Coordinates/cells are tuples of (i, j) which work in the traditional matrix way.
     """
+
+    __specified_labels = {}
+
+    class Block(object):
+        """Different blocks for Tilings, for convenience."""
+        all = PermSetAll()
+        point = PermSetStatic([Perm()])  # TODO: Make a new optimized perm set if this is a bottleneck
+        increasing = AvoidingGeneric(Basis(Perm((1, 0))))
+        decreasing = AvoidingGeneric(Basis(Perm((0, 1))))
+        def __new__(_cls):
+            warnings.warn("Block class should not be instantiated", Warning)
 
     def __init__(self, tiles=()):
         info = []
         super(Tiling, self).__init__(self._init_helper(tiles, info))
         self._hash, self._max_i, self._max_j, self._total_point_tiles = info
+        #for key, value in iteritems(tiles):
+        #    print(key, value)
+        #if isinstance(rule, list):
+        #    self.rule = {(i, j): rule[i][j]
+        #                 for i in range(len(rule))
+        #                 for j in range(len(rule[i]))
+        #                 if rule[i][j] is not None}
+        #else:
+        #    self.rule = {(i, j): s
+        #                 for ((i,j), s) in rule.items()
+        #                 if s is not None}
 
     def _init_helper(self, tiles, info):
-        POINT_PERM_SET = Tile.POINT_PERM_SET
+        point_perm_set = Tiling.Block.point
         total_point_tiles = 0
         hash_sum = 0
         max_i = 0
@@ -29,7 +54,7 @@ class Tiling(dict):
         for key_val in tiles.items():  # Builds the tuple in python2
             hash_sum += hash(key_val)
             (i, j), perm_set = key_val
-            if perm_set is POINT_PERM_SET:
+            if perm_set is point_perm_set:
                 total_point_tiles += 1
             max_i = max(max_i, i)
             max_j = max(max_j, j)
@@ -38,6 +63,11 @@ class Tiling(dict):
         info.append(max_i)
         info.append(max_j)
         info.append(total_point_tiles)
+
+    @classmethod
+    def label(cls, block, label):
+        warnings.warn("Method signature may change", PendingDeprecationWarning)
+        cls.__specified_labels[block] = label
 
     def __hash__(self):
         return self._hash
@@ -51,8 +81,6 @@ class Tiling(dict):
         max_j = self._max_j
 
         result = []
-
-        labels = OrderedDict()
 
         # Create tiling lines
         for i in range(2*max_i + 3):
@@ -71,60 +99,30 @@ class Tiling(dict):
                     result.append(" ")
             result.append("\n")
 
+        labels = OrderedDict()
+
         # Put the sets in the tiles
         row_width = 2*max_j + 4
-        for (i, j), perm_set in iteritems(self):
-            label = labels.get(perm_set)
-            if label is None:
-                label = str(len(labels) + 1)
-                labels[perm_set] = label
+        for (i, j), perm_set in self.items():
+            # Check if label has been specified
+            specified_label = self.__specified_labels.get(perm_set)
+            if specified_label is None:
+                # Use generic label (could reuse specified label)
+                label = labels.get(perm_set)
+                if label is None:
+                    label = str(len(labels) + 1)
+                    labels[perm_set] = label
+            else:
+                # If label specified, then use it
+                label = specified_label
             index = (2*i + 1)*row_width + 2*j + 1
             result[index] = label
 
         # Legend at bottom
-        for perm_set, label in iteritems(labels):
+        for perm_set, label in labels.items():
             result.append(label)
             result.append(": ")
             result.append(str(perm_set))
             result.append("\n")
 
         return "".join(result)
-
-
-class TilingPermSetDescriptor(Descriptor):
-    # TODO: Pluralize
-    def __init__(self, tile):
-        super(TilingPermSetDescriptor, self).__init__()
-        self.tile = tile
-
-    def __eq__(self, other):
-        return isinstance(other, TilingPermSetDescriptor) and self.tile == other.tile
-
-    def __hash__(self):
-        # TODO: Hash without using sum?
-        return hash(self.tile)
-
-    def __repr__(self):
-        return "<A descriptor subclass object for describing with a Tile>"
-
-
-class TilingPermSet(PermSetDescribed):
-    """A permutation set containing all permutations generated by a generating rule."""
-
-    def __init__(self, descriptor):
-        PermSetDescribed.__init__(self, descriptor)
-        self.rule = descriptor.tile  # TODO: Don't be so hacky
-
-    def __contains__(self, item):
-        raise NotImplementedError
-
-    def __getitem__(self, key):
-        raise NotImplementedError
-
-    def of_length(self, n):
-        pass
-
-
-T = Tiling({(0, 1): Tile.P, (1,1): Tile.P, (2,0): Tile.P, (2,2): Tile.P})
-TD = TilingPermSetDescriptor(T)
-TPS = TilingPermSet(TD)

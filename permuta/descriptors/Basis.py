@@ -15,9 +15,9 @@ class Basis(Descriptor, tuple):  # pylint: disable=too-few-public-methods
     def __new__(cls, perms):
         # Make sure we're working with a sorted list of perms
         if isinstance(perms, Perm):
-            perms = (perms,)
+            perms = [perms]
         else:
-            perms = tuple(sorted(perms))
+            perms = sorted(perms)
 
         if len(perms) > 1:
             # Remove superfluous elements from basis
@@ -32,7 +32,7 @@ class Basis(Descriptor, tuple):  # pylint: disable=too-few-public-methods
                     if perms[i].contained_in(perms[j]):
                         not_needed.add(j)
             if not_needed:
-                perms = tuple(perms[i] for i in range(len(perms)) if i not in not_needed)
+                perms = (perms[i] for i in range(len(perms)) if i not in not_needed)
         return tuple.__new__(cls, perms)
 
     def is_polynomial(self):
