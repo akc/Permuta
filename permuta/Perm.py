@@ -9,9 +9,9 @@ import operator
 import random
 import sys
 
-from permuta.interfaces import Patt, Flippable, Rotatable, Shiftable
-from permuta.misc import checking
-from permuta.misc import left_floor_and_ceiling
+from .interfaces import Patt, Flippable, Rotatable, Shiftable
+from .misc import checking
+from .misc import left_floor_and_ceiling
 
 if sys.version_info.major == 2:
     range = xrange  #pylint: disable=redefined-builtin,invalid-name,undefined-variable

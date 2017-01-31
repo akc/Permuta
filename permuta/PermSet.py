@@ -1,5 +1,12 @@
-import abc
 import numbers
+
+from permuta.descriptors import Descriptor
+from permuta.descriptors import Basis
+from permuta.descriptors import Predicate
+from permuta._perm_set import PermSetBase
+from permuta._perm_set.finite import PermSetStatic
+from permuta._perm_set.unbounded.all import PermSetAll
+from permuta._perm_set.unbounded.described import PermSetDescribed
 
 
 class PermSetMetaclass(type):
@@ -7,6 +14,7 @@ class PermSetMetaclass(type):
         return isinstance(instance, PermSetBase)
     def __subclasscheck__(self, subclass):
         return issubclass(subclass, PermSetBase)
+
 
 class PermSet(object, metaclass=PermSetMetaclass):
     def __new__(cls, descriptor=None):
@@ -53,13 +61,3 @@ class PermSet(object, metaclass=PermSetMetaclass):
     @classmethod
     def filtered(cls, predicate):
         return cls(Predicate(predicate))
-
-
-from permuta.descriptors import Descriptor
-from permuta.descriptors import Basis
-from permuta.descriptors import Predicate
-from permuta.descriptors import Tiling
-from permuta._perm_set import PermSetBase
-from permuta._perm_set.finite import PermSetStatic
-from permuta._perm_set.unbounded.all import PermSetAll
-from permuta._perm_set.unbounded.described import PermSetDescribed

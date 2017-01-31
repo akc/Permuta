@@ -1,9 +1,10 @@
 
 from itertools import product
 from permuta import Perm
-from permuta.descriptors.Tiling import Tiling
+from permuta.descriptors import Tiling
 from permuta.misc import ordered_set_partitions, flatten
-from permuta._perm_set.finite import PermSetStatic
+from permuta._perm_set.finite import StaticPermSet
+from permuta._perm_set.finite import PointPermSet
 
 from ..PermSetDescribed import PermSetDescribed
 
@@ -11,9 +12,9 @@ from ..PermSetDescribed import PermSetDescribed
 class TilingPermSet(PermSetDescribed):
     descriptor_class = Tiling
 
-    def __init__(self, tiling):
-        super(Avoiding, self).__init__(tiling)
-        self.tiling = tiling
+    def __init__(self, descriptor):
+        super(TilingPermSet, self).__init__(descriptor)
+        self.tiling = descriptor
 
     def __str__(self):
         return "a tiling perm set"
@@ -26,10 +27,7 @@ class TilingPermSetGeneric(TilingPermSet):
     """A perm set containing all perms that can be generated with a tiling."""
     descriptor = None
 
-    def __init__(self, descriptor):
-        super(TilingPermSet, self)
-        PermSetDescribed.__init__(self, descriptor)
-        self.tiling = descriptor
+    point_perm_set = PointPermSet()
 
     def __contains__(self, item):
         raise NotImplementedError
@@ -58,7 +56,7 @@ class TilingPermSetGeneric(TilingPermSet):
             if at == len(tiling):
                 if left == 0:
                     yield []
-            elif tiling[at][1] is Tiling.Block.point:
+            elif tiling[at][1] is TilingPermSetGeneric.point_perm_set:
                 # this doesn't need to be handled separately,
                 # it's just an optimization
                 if left > 0:
