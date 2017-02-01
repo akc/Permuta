@@ -41,7 +41,7 @@ class AvoidingGeneric(Avoiding):
             return AvoidingGeneric.__CLASS_CACHE[basis]
         else:
             instance = super(AvoidingGeneric, cls).__new__(cls)
-            instance.cache = [set([Perm()])]  # Generic case includes empty permutation
+            instance.cache = [{Perm(): [0]}]  # Generic case includes empty permutation
             AvoidingGeneric.__CLASS_CACHE[basis] = instance
             return instance
 
@@ -49,19 +49,34 @@ class AvoidingGeneric(Avoiding):
         # Ensure level is available
         patts = self.basis
         while len(self.cache) <= level_number:
-            new_level = set()
-            total_indices = len(self.cache)  # really: len(perm) + 1
-            #new_element = indices - 1  # TODO Performance without insert method
-            for perm in self.cache[-1]:
-                for index in range(total_indices):
+            new_level = {}
+            for perm, insertion_indices in self.cache[-1].items():
+                filtered_insertion_indices = []
+                new_perms_and_information = []
+                for index in insertion_indices:
                     new_perm = perm.insert(index)
                     if new_perm.avoids(*patts):
-                        new_level.add(new_perm)
+                        filtered_insertion_indices.append(index)
+                        new_perms_and_information.append([new_perm, index])
+                for pair in new_perms_and_information:
+                    inserted_index = pair[1]
+                    derived_insertion_indices = []
+                    for index in filtered_insertion_indices:
+                        # May be there's a better way to do this: two for loops?
+                        if index == inserted_index:
+                            derived_insertion_indices.append(index)
+                            derived_insertion_indices.append(index + 1)
+                        elif index < inserted_index:
+                            derived_insertion_indices.append(index)
+                        else:  # index > inserted_index:
+                            derived_insertion_indices.append(index + 1)
+                    pair[1] = derived_insertion_indices
+                new_level.update(new_perms_and_information)
             self.cache.append(new_level)
 
     def _get_level(self, level_number):
         self._ensure_level(level_number)
-        return self.cache[level_number]
+        return self.cache[level_number].keys()
 
     def of_length(self, length):
         # TODO: Cache of instances?
@@ -80,8 +95,7 @@ class AvoidingGeneric(Avoiding):
 
     def __next__(self):
         if self._iter is None:
-            self._ensure_level(self._iter_number)
-            cached_perms = self.cache[self._iter_number]
+            cached_perms = self._get_level(self._iter_number)
             if len(cached_perms) == 0:
                 raise StopIteration
             self._iter = iter(cached_perms)
